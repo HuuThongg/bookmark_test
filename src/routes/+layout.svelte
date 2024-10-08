@@ -3,6 +3,6 @@
   import "../app.css";
 </script>
 
-<SideBarUi></SideBarUi>
+<!-- <SideBarUi></SideBarUi> -->
 
 <slot></slot>

@@ -24,10 +24,9 @@
   import { melt, type TreeView } from "@melt-ui/svelte";
   import { getContext } from "svelte";
   import { goto } from "$app/navigation";
-
+  import { treeItemsStore, flattenedTreeItems } from "$lib/store";
   export let treeItems: TreeItem[];
   export let level = 1;
-
   const {
     elements: { item, group },
     helpers: { isExpanded, isSelected },
@@ -36,10 +35,6 @@
       selectedItem,
     },
   } = getContext<TreeView>("tree");
-
-  const expandedItems = get(); // Call the get function to retrieve expanded items
-  console.log("Expanded Items:", expandedItems);
-  $: console.log("selectedItem", $selectedItem);
 </script>
 
 {#each treeItems as { title, icon, children }, i}
@@ -56,10 +51,31 @@
         await goto(`/test/${title}`, { keepFocus: true });
         console.log("end onclick");
       }}
-      on:m-keydown={async () => {
-        console.log("start keydown");
-        await goto(`/test/${title}`, { keepFocus: true });
-        console.log("/end keydown");
+      on:m-keydown={async (e) => {
+        let nextItem;
+        if (e.detail.originalEvent.code === "ArrowDown") {
+          if ($isExpanded(itemId) && treeItems[i]?.children?.[0]) {
+            nextItem = treeItems[i].children[0]; // First child
+          } else if (treeItems[i + 1]) {
+            nextItem = treeItems[i + 1]; // Next sibling
+          } else {
+            let index = flattenedTreeItems.findIndex((e) => e.title === title);
+            nextItem = flattenedTreeItems[index + 1];
+          }
+          await goto(`/test/${nextItem.title}`, { keepFocus: true });
+        }
+        if (e.detail.originalEvent.code === "ArrowUp") {
+          if ($isExpanded(itemId) && treeItems[i]?.children?.[0]) {
+            nextItem = treeItems[i].children[0]; // First child
+          } else if (treeItems[i - 1]) {
+            nextItem = treeItems[i - 1];
+          } else {
+            let index = flattenedTreeItems.findIndex((e) => e.title === title);
+
+            nextItem = flattenedTreeItems[index - 1];
+          }
+          await goto(`/test/${nextItem.title}`, { keepFocus: true });
+        }
       }}
       data-id={itemId}
     >
@@ -70,14 +86,13 @@
         <svelte:component this={icons[icon]} class="h-4 w-4" />
       {/if}
 
-      <span class="select-none">{title}</span>
+      <span class="select-none">{title} {" "} {i}</span>
 
       <!-- Selected icon -->
       {#if $isSelected(itemId)}
         <svelte:component this={icons["highlight"]} class="h-4 w-4" />
       {/if}
     </button>
-
     {#if children}
       <ul use:melt={$group({ id: itemId })}>
         <svelte:self treeItems={children} level={level + 1} />
